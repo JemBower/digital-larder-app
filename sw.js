@@ -1,4 +1,4 @@
-const CACHE_NAME = 'digital-larder-v1';
+const CACHE_NAME = 'digital-larder-v2';
 const APP_SHELL = [
   './index.html',
   './styles.css',
@@ -23,17 +23,25 @@ self.addEventListener('activate', (event) => {
   self.clients.claim();
 });
 
-// App-shell files: cache-first, so the shopping list and larder tracker
-// always open instantly with no signal. Anything else (like the on-demand
-// OCR script) just goes to the network — it's only needed when scanning a
-// receipt, which realistically happens when there's a connection anyway.
+// App-shell files: stale-while-revalidate. Serve the cached copy instantly
+// (fast, works with no signal), but always fetch a fresh copy in the
+// background and update the cache — so the next launch naturally has
+// whatever was last shipped, without needing a hard reinstall to see it.
+// Anything else (like the on-demand OCR script) just goes to the network —
+// it's only needed when scanning a receipt, which realistically happens
+// when there's a connection anyway.
 self.addEventListener('fetch', (event) => {
   const url = new URL(event.request.url);
   const isShellFile = APP_SHELL.some((path) => url.pathname.endsWith(path.replace('./', '/')));
+  if (!isShellFile) return;
 
-  if (isShellFile) {
-    event.respondWith(
-      caches.match(event.request).then((cached) => cached || fetch(event.request))
-    );
-  }
+  event.respondWith(
+    caches.open(CACHE_NAME).then(async (cache) => {
+      const cached = await cache.match(event.request);
+      const network = fetch(event.request)
+        .then((response) => { cache.put(event.request, response.clone()); return response; })
+        .catch(() => cached);
+      return cached || network;
+    })
+  );
 });

@@ -121,10 +121,10 @@ button, input, select{ font-family:var(--font); }
 }
 .add-row button:focus-visible{ outline:2px solid var(--text); outline-offset:2px; }
 
-.scan-row{ margin-top:.9rem; }
+.scan-row{ margin-bottom:1.1rem; }
 .scan-btn{
-  width:100%; font-size:.92rem; font-weight:600; color:var(--text); background:var(--surface);
-  border:1px dashed var(--border); border-radius:12px; padding:.85rem; cursor:pointer; min-height:48px;
+  width:100%; font-size:1rem; font-weight:700; color:var(--accent-contrast); background:var(--accent);
+  border:none; border-radius:12px; padding:.95rem; cursor:pointer; min-height:52px;
 }
 .scan-btn:focus-visible{ outline:2px solid var(--accent); outline-offset:2px; }
 .scan-status{ font-size:.82rem; color:var(--text-muted); text-align:center; margin-top:.5rem; }

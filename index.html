@@ -59,8 +59,15 @@
 
   <!-- LARDER TRACKER -->
   <section id="larder" class="section">
+    <div class="scan-row">
+      <input type="file" id="receiptInput" accept="image/*" capture="environment" style="display:none;">
+      <button type="button" class="scan-btn" id="scanBtn">📷 Scan a receipt</button>
+      <div class="scan-status" id="scanStatus"></div>
+    </div>
+
     <div id="larderList"></div>
 
+    <p class="cat-title" style="margin-top:1.3rem;">Add manually instead</p>
     <div class="add-row">
       <input type="text" id="larderInput" placeholder="Item name…">
       <input type="number" id="larderQty" placeholder="Qty" min="1" value="1" style="max-width:70px;">
@@ -70,12 +77,6 @@
         <option>Freezer</option>
       </select>
       <button type="button" id="addLarderBtn">Add</button>
-    </div>
-
-    <div class="scan-row">
-      <input type="file" id="receiptInput" accept="image/*" capture="environment" style="display:none;">
-      <button type="button" class="scan-btn" id="scanBtn">📷 Scan a receipt</button>
-      <div class="scan-status" id="scanStatus"></div>
     </div>
   </section>
 
