@@ -1,4 +1,4 @@
-const CACHE_NAME = 'digital-larder-v6';
+const CACHE_NAME = 'digital-larder-v7';
 const APP_SHELL = [
   './index.html',
   './styles.css',

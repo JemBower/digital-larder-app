@@ -330,15 +330,50 @@ document.getElementById('scanBtn').addEventListener('click', () => {
   document.getElementById('receiptInput').click();
 });
 
+// Real-world testing found Tesseract.js struggling badly on raw phone
+// photos of thermal receipt paper (low contrast, small print). This is the
+// standard fix for that specific problem: sharpen contrast and upscale
+// before the scanner ever sees it, rather than asking it to read a faint,
+// low-resolution image as-is.
+function preprocessReceiptImage(file) {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    const url = URL.createObjectURL(file);
+    img.onload = () => {
+      const scale = Math.min(3, Math.max(1, 1800 / img.width));
+      const canvas = document.createElement('canvas');
+      canvas.width = Math.round(img.width * scale);
+      canvas.height = Math.round(img.height * scale);
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+
+      const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+      const data = imageData.data;
+      for (let i = 0; i < data.length; i += 4) {
+        const gray = 0.299 * data[i] + 0.587 * data[i + 1] + 0.114 * data[i + 2];
+        const contrasted = Math.max(0, Math.min(255, (gray - 128) * 1.7 + 128));
+        data[i] = data[i + 1] = data[i + 2] = contrasted;
+      }
+      ctx.putImageData(imageData, 0, 0);
+      URL.revokeObjectURL(url);
+      canvas.toBlob((blob) => (blob ? resolve(blob) : reject(new Error('Could not prepare that image.'))), 'image/png');
+    };
+    img.onerror = () => reject(new Error('Could not open that photo.'));
+    img.src = url;
+  });
+}
+
 document.getElementById('receiptInput').addEventListener('change', async (e) => {
   const file = e.target.files[0];
   if (!file) return;
   const status = document.getElementById('scanStatus');
-  status.textContent = 'Loading scanner…';
+  status.textContent = 'Preparing image…';
   try {
+    const processed = await preprocessReceiptImage(file);
+    status.textContent = 'Loading scanner…';
     await ensureTesseract();
     status.textContent = 'Reading receipt… this can take a moment.';
-    const { data } = await window.Tesseract.recognize(file, 'eng');
+    const { data } = await window.Tesseract.recognize(processed, 'eng');
     status.textContent = '';
     const parsed = parseReceiptText(data.text);
     openConfirmModal(parsed);
