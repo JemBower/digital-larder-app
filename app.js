@@ -478,8 +478,22 @@ renderTripSelector();
 renderShoppingList();
 renderLarderList();
 
+// Force-quitting and reopening isn't a reliable way to pick up an update —
+// browsers only check for a new sw.js occasionally on their own schedule.
+// So: actively ask on every open, and once a new version takes over,
+// reload automatically rather than leaving the app silently stuck on an
+// old cached copy.
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('sw.js').catch(() => { /* offline install still works without it */ });
+    navigator.serviceWorker.register('sw.js').then((reg) => {
+      reg.update();
+    }).catch(() => { /* offline install still works without it */ });
+  });
+
+  let alreadyRefreshed = false;
+  navigator.serviceWorker.addEventListener('controllerchange', () => {
+    if (alreadyRefreshed) return;
+    alreadyRefreshed = true;
+    window.location.reload();
   });
 }
