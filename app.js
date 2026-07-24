@@ -353,29 +353,45 @@ function parseReceiptText(rawText) {
   const dateMatch = rawText.match(/\b(\d{2}\/\d{2}\/\d{4})\b/);
   if (dateMatch) date = dateMatch[1];
 
-  let stopped = false;
   for (const rawLine of lines) {
     const line = fixDecimalMisreads(rawLine);
     const upper = line.toUpperCase();
-    if (STOP_KEYWORDS.some((kw) => upper.includes(kw))) { stopped = true; break; }
-    // A plausible item line ends with a price like "1.75" or "12.40".
-    const priceMatch = line.match(/^(.*?)\s+(-?\d+\.\d{2})$/);
+    if (STOP_KEYWORDS.some((kw) => upper.includes(kw))) break;
+    if (line.length < 3) continue; // too short to be anything useful
+
+    // A plausible item line ends with a price like "1.75" or "£12.40" —
+    // loosened from a strict end-anchor since real Tesseract.js output on a
+    // photographed receipt is noisier than clean text: stray currency
+    // symbols, extra spaces, comma decimals all need tolerating.
+    const priceMatch = line.match(/^(.*\S)\s*[£$]?\s*(-?\d{1,3}[.,]\d{2})\s*$/);
     if (priceMatch) {
-      const rawName = priceMatch[1].trim();
-      if (rawName.length < 2) continue; // too short to be a real item line
+      const rawName = priceMatch[1].replace(/[£$]\s*$/, '').trim();
+      if (rawName.length < 2) continue;
       const rawKey = normalizeName(rawName);
       const learned = state.corrections[rawKey];
       items.push({
-        raw: rawName,
-        name: learned || rawName,
-        location: 'Pantry',
-        excluded: false,
-        learned: !!learned
+        raw: rawName, name: learned || rawName, location: 'Pantry',
+        excluded: false, learned: !!learned, confident: true
+      });
+      continue;
+    }
+
+    // No clean price match — rather than silently dropping the line (the
+    // actual bug found in real-world testing: 26 of 38 items vanished with
+    // no way to know they were ever there), surface it anyway, just
+    // defaulted to excluded so uncertain OCR noise doesn't flood the list.
+    // Tick it in if it turns out to be a real missed item.
+    if (/[a-zA-Z]{3,}/.test(line)) {
+      const rawKey = normalizeName(line);
+      const learned = state.corrections[rawKey];
+      items.push({
+        raw: line, name: learned || line, location: 'Pantry',
+        excluded: true, learned: !!learned, confident: false
       });
     }
   }
 
-  return { items, date, stopped };
+  return { items, date };
 }
 
 let pendingConfirmItems = [];
@@ -386,9 +402,9 @@ function openConfirmModal(parsed) {
     list.innerHTML = '<p class="hint">Couldn\'t make out any item lines on that scan — try again with better light or a flatter receipt.</p>';
   } else {
     list.innerHTML = pendingConfirmItems.map((item, idx) => `
-      <div class="confirm-row" data-idx="${idx}">
+      <div class="confirm-row ${item.excluded ? 'excluded' : ''}" data-idx="${idx}">
         <div class="confirm-row-top">
-          <input type="checkbox" class="check" checked data-confirm-include="${idx}">
+          <input type="checkbox" class="check" ${item.excluded ? '' : 'checked'} data-confirm-include="${idx}">
           <input type="text" value="${escapeHtml(item.name)}" data-confirm-name="${idx}">
           <select data-confirm-location="${idx}">
             <option ${item.location === 'Fridge' ? 'selected' : ''}>Fridge</option>
@@ -396,8 +412,15 @@ function openConfirmModal(parsed) {
             <option ${item.location === 'Freezer' ? 'selected' : ''}>Freezer</option>
           </select>
         </div>
-        ${item.learned ? '<div class="learned">Auto-filled from a correction you made before</div>' : `<div class="raw">Read as: "${escapeHtml(item.raw)}"</div>`}
+        ${item.learned ? '<div class="learned">Auto-filled from a correction you made before</div>'
+          : item.confident ? `<div class="raw">Read as: "${escapeHtml(item.raw)}"</div>`
+          : '<div class="raw">Not sure this is a real item — tick it in if it should be added</div>'}
       </div>`).join('');
+    list.querySelectorAll('[data-confirm-include]').forEach((cb) => {
+      cb.addEventListener('change', () => {
+        cb.closest('.confirm-row').classList.toggle('excluded', !cb.checked);
+      });
+    });
   }
   document.getElementById('confirmBackdrop').classList.add('open');
   document.getElementById('confirmBackdrop').dataset.date = parsed.date || '';
