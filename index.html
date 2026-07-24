@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Digital Larder</title>
+<meta name="theme-color" content="#3F6B4F">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icon.svg">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<div class="container">
+
+  <div class="app-title">
+    <strong>Digital Larder</strong>
+    <span>Know what you've got before you shop</span>
+  </div>
+
+  <div class="tabs">
+    <button class="tab-btn active" data-tab="shopping" type="button">Shopping List</button>
+    <button class="tab-btn" data-tab="larder" type="button">Larder</button>
+  </div>
+
+  <!-- SHOPPING LIST -->
+  <section id="shopping" class="section active">
+    <div class="trip-row" id="tripRow"></div>
+    <div class="add-row" style="margin-top:0;">
+      <button type="button" id="repeatTripBtn" style="background:var(--surface);color:var(--text);border:1px solid var(--border);flex:1;">⟳ Repeat last trip</button>
+    </div>
+
+    <div class="stat-row">
+      <div class="stat"><b id="pendingCount">0</b><span>Items to buy</span></div>
+      <div class="stat"><b id="completedCount">0/0</b><span>Completed</span></div>
+    </div>
+
+    <div id="shoppingList"></div>
+
+    <div class="add-row">
+      <input type="text" id="itemInput" placeholder="Add item…">
+      <select id="categorySelect">
+        <option>Produce</option>
+        <option>Dairy</option>
+        <option>Meat</option>
+        <option>Pantry</option>
+        <option>Frozen</option>
+        <option>Other</option>
+      </select>
+      <button type="button" id="addItemBtn">Add</button>
+    </div>
+
+    <div class="fallback-row">
+      <button type="button" id="fallbackToLarderBtn">Lost your receipt? Add ticked items to the larder manually</button>
+    </div>
+  </section>
+
+  <!-- LARDER TRACKER -->
+  <section id="larder" class="section">
+    <div id="larderList"></div>
+
+    <div class="add-row">
+      <input type="text" id="larderInput" placeholder="Item name…">
+      <input type="number" id="larderQty" placeholder="Qty" min="1" value="1" style="max-width:70px;">
+      <select id="larderLocation">
+        <option>Fridge</option>
+        <option>Pantry</option>
+        <option>Freezer</option>
+      </select>
+      <button type="button" id="addLarderBtn">Add</button>
+    </div>
+
+    <div class="scan-row">
+      <input type="file" id="receiptInput" accept="image/*" capture="environment" style="display:none;">
+      <button type="button" class="scan-btn" id="scanBtn">📷 Scan a receipt</button>
+      <div class="scan-status" id="scanStatus"></div>
+    </div>
+  </section>
+
+</div>
+
+<!-- RECEIPT CONFIRM MODAL -->
+<div class="modal-backdrop" id="confirmBackdrop">
+  <div class="modal">
+    <h2>Confirm what was read</h2>
+    <p class="hint">Fix anything misread before it's added — corrections are remembered for next time.</p>
+    <div id="confirmList"></div>
+    <div class="modal-actions">
+      <button type="button" class="secondary" id="cancelConfirmBtn">Cancel</button>
+      <button type="button" class="primary" id="commitConfirmBtn">Add to larder</button>
+    </div>
+  </div>
+</div>
+
+<script src="app.js"></script>
+</body>
+</html>
