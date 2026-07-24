@@ -22,6 +22,15 @@ const STOP_KEYWORDS = [
   'APP SEQ', 'CHANGE', 'THANK YOU FOR SHOPPING'
 ];
 
+// Header/branding lines that appear on every receipt before the items start
+// — not products, so don't even surface them as candidates. Not an exact
+// science (every retailer's header text differs), but this covers what's
+// actually been seen so far rather than guessing at every possible chain.
+const IGNORE_LINES = [
+  'WAITROSE', 'WAITROSE & PARTNERS', '& PARTNERS', 'PARTNERS',
+  'WWW.WAITROSE.COM', 'MYWAITROSE'
+];
+
 function loadState() {
   const raw = localStorage.getItem(STORAGE_KEY);
   if (raw) {
@@ -358,6 +367,7 @@ function parseReceiptText(rawText) {
     const upper = line.toUpperCase();
     if (STOP_KEYWORDS.some((kw) => upper.includes(kw))) break;
     if (line.length < 3) continue; // too short to be anything useful
+    if (IGNORE_LINES.some((kw) => upper === kw || upper.includes(kw))) continue;
 
     // A plausible item line ends with a price like "1.75" or "£12.40" —
     // loosened from a strict end-anchor since real Tesseract.js output on a
